@@ -1,0 +1,3 @@
+package main
+
+const key = "" // https://www.pushbullet.com/#settings/account

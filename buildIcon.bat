@@ -1,0 +1,1 @@
+rsrc -ico IconGroup.ico
