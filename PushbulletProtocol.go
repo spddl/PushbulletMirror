@@ -5,6 +5,8 @@ import (
 	"errors"
 	"io/ioutil"
 	"log"
+	"os"
+	"os/exec"
 	"strings"
 	"text/template"
 
@@ -24,8 +26,6 @@ func pushbulletProtocolCheck(filename string) error {
 	}
 
 	if strings.HasPrefix(s, "\""+filename+"\" \"%1\"") {
-		// if strings.HasPrefix(s, "\""+filename) {
-		// if strings.HasPrefix(s, "cmd /c start \"PushbulletAPI\" /Min \""+filename+"\" \"%1\"") {
 		return nil // korrekter Pfad
 	}
 
@@ -49,9 +49,6 @@ func pushbulletProtocolCreateReg(filename string) { // https://www.robvanderwoud
 [HKEY_CLASSES_ROOT\PushbulletApi\shell\open\command]
 @="{{ .}} \"%1\""`
 
-	// @="cmd /c start "PushbulletAPI" /Min "{{ .}}" \"%1\""`
-	// cmd /c start "PushbulletAPI" /Min "F:\git\Pushbullet\Pushbullet.exe" "%1"
-
 	tmplProperty := template.Must(template.New("template").Parse(string(templatePropertyData))) // erstellt aus den Daten das Template
 
 	var buf bytes.Buffer
@@ -67,5 +64,13 @@ func pushbulletProtocolCreateReg(filename string) { // https://www.robvanderwoud
 	err = ioutil.WriteFile("./PushbulletApi.reg", readBuf, 0644)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	cmd := exec.Command("REG", "IMPORT", "PushbulletApi.reg")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	if err != nil {
+		log.Fatalf("REG IMPORT PushbulletApi.reg\nfailed with %s\n", err)
 	}
 }

@@ -5,72 +5,72 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+
 	"image"
 	"image/jpeg"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"nhooyr.io/websocket"
-	// "github.com/nu7hatch/gouuid"
 	uuid "github.com/nu7hatch/gouuid"
+	"nhooyr.io/websocket"
 )
 
 func main() {
 	log.SetFlags(log.Lmicroseconds | log.Lshortfile) // https://ispycode.com/GO/Logging/Setting-output-flags
 
-	log.Println(os.Args)
-
-	if len(os.Args) > 1 {
-		if strings.HasPrefix(os.Args[1], "pushbulletapi://") {
-			cmd := strings.TrimPrefix(os.Args[1], "pushbulletapi://")
-			cmdArray := strings.Split(cmd, "/")
-
-			switch cmdArray[0] {
-			case "dismissal":
-				log.Println(cmdArray[1:])
-				DismissNotification(map[string]string{
-					"NotificationID":   cmdArray[1],
-					"NotificationTag":  cmdArray[2],
-					"PackageName":      cmdArray[3],
-					"SourceUserIden":   cmdArray[4],
-					"ConversationIden": fmt.Sprintf("{\"package_name\":\"%s\",\"tag\":null,\"id\":%s}", cmdArray[3], cmdArray[1]),
-				})
-
-			// case "reply":
-			// 	log.Println(cmdArray[1:])
-			// 	DismissNotification(map[string]string{
-			// 		"NotificationID":  cmdArray[1],
-			// 		"NotificationTag": cmdArray[2],
-			// 		"PackageName":     cmdArray[3],
-			// 		"SourceUserIden":  cmdArray[4],
-			// 		"ConversationIden": fmt.Sprintf("{\"package_name\":\"%s\",\"tag\":null,\"id\":%s}", cmdArray[3], cmdArray[1]),
-			// 	})
-			// 	SendMessage(map[string]string{
-			// 		"PackageName":     cmdArray[3],
-			// 		"SourceUserIden":  cmdArray[4],
-			// 		"TargetDeviceIden": "",
-			// 		"ConversationIden": fmt.Sprintf("{\"package_name\":\"%s\",\"tag\":null,\"id\":%s}", cmdArray[3], cmdArray[1]),
-			// 		"Message": "",
-			// 	})
-
-			default:
-				log.Printf("default: %s\n", cmdArray)
-			}
-
-			// log.Println("os.Exit(2)")
-			// time.Sleep(time.Hour)
-
-			os.Exit(2)
-		}
-	}
-
 	prognamepath, err := filepath.Abs(os.Args[0])
 	if err != nil {
 		log.Fatal(err)
 	}
+	// file, err := os.OpenFile(filepath.Join(filepath.Dir(prognamepath), fmt.Sprintf("_%d-%s.log", os.Getpid(), time.Now().Format("2006-01-02T15-04-05"))), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// defer file.Close()
+	// log.SetOutput(file)
+
+	fmt.Println(filepath.Join(prognamepath, fmt.Sprintf("_%d-%s.log", os.Getpid(), time.Now().Format("2006-01-02T15-04-05"))))
+	log.Println(os.Args)
+
+	if len(os.Args) > 1 {
+		u, err := url.Parse(os.Args[1])
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if u.Scheme == "pushbulletapi" {
+			switch u.Host {
+			case "dismissal":
+				err := DismissNotification(u.Query())
+				if err != nil {
+					log.Println(err)
+				}
+
+			case "reply":
+				// err := DismissNotification(u.Query())
+				// if err != nil {
+				// 	log.Println(err)
+				// }
+				// err := SendMessage(u.Query())
+				// if err != nil {
+				// 	log.Println(err)
+				// }
+
+			default:
+				log.Println("default")
+			}
+
+		}
+		// log.Println("os.Exit(2)")
+		// time.Sleep(time.Hour)
+
+		os.Exit(2)
+	}
+
 	prognamedecoded := `\"` + strings.ReplaceAll(prognamepath, `\`, `\\`) + `\"`
 	err = pushbulletProtocolCheck(prognamepath) // Prüft das PushbulletApi:// Protokoll
 	if err != nil {
@@ -81,93 +81,66 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var c *websocket.Conn
 	for {
-		var err error
-		c, _, err = websocket.Dial(ctx, "wss://stream.pushbullet.com/websocket/"+key, websocket.DialOptions{}) // erstellt die Websocket Verbindung
-		if err != nil {
-			log.Println(err)
-			time.Sleep(10 * time.Second)
-		} else {
-			break
-		}
-	}
-	log.Println("Websocket verbunden.")
-	defer c.Close(websocket.StatusNormalClosure, "")
-	// go httpServer(45214)
-
-	for {
-		_, reader, err := c.Reader(ctx)
-		if err != nil {
-			log.Println(err)
-			break
-		} else {
-			data := make(map[string]interface{})
-			err := json.NewDecoder(reader).Decode(&data)
+		var c *websocket.Conn
+		for {
+			var err error
+			c, _, err = websocket.Dial(ctx, "wss://stream.pushbullet.com/websocket/"+key, nil) // erstellt die Websocket Verbindung
 			if err != nil {
 				log.Println(err)
-			}
-			if data["type"] == "push" { // https://docs.pushbullet.com/#realtime-event-stream
-				dataMap := parseResponse(data["push"])
-				response(dataMap)
-			} else if data["type"] != "nop" {
-				log.Printf("default: %+v\n", data)
+				time.Sleep(10 * time.Second)
+			} else {
+				break
 			}
 		}
-	}
-}
+		log.Println("Websocket verbunden.")
+		defer c.Close(websocket.StatusNormalClosure, "")
 
-func prettyPrint(data interface{}) string {
-	out, err := json.MarshalIndent(data, "", "  ")
-	if err != nil {
-		log.Fatalln(err)
-	}
-	return string(out)
-}
+		for {
+			_, reader, err := c.Reader(ctx)
+			if err != nil {
+				log.Println(err)
+				break
+			} else {
 
-func parseResponse(data interface{}) map[string]string {
-	// log.Println("ParseResponse #", prettyPrint(data))
+				// dataDEMO := make(map[string]interface{})
+				// e := json.NewDecoder(reader).Decode(&dataDEMO)
+				// if e != nil {
+				// 	log.Println(e)
+				// }
+				// log.Println("dataDEMO", prettyPrint(dataDEMO))
 
-	dataMap := map[string]string{}
-	switch v := data.(type) {
-	case string:
-		// log.Println("1_string:", v)
-	case int:
-		// log.Printf("1_int: %v \n", v)
-	case map[string]interface{}:
-		for k, vv := range v {
-			switch vb := vv.(type) {
-			case string:
-				// log.Printf("%s -> %s\n", k, vv)
-				dataMap[k] = vv.(string)
-			case float64:
-				// log.Printf("2_float64: %v\n", vb)
-			case bool:
-				// log.Printf("2_bool: %v\n", vb)
-			case int:
-				log.Printf("2_int: %v\n", vb)
-				// dataMap[k] = vv.(int)
-			case []interface{}:
-				// log.Printf("2_[]interface: %v \n", vb)
-			default:
-				// log.Printf("2_I don't know about type %T\n", vb)
+				var data JSONEntry
+				err := json.NewDecoder(reader).Decode(&data)
+				if err != nil {
+					log.Println(err)
+				}
+
+				if data.Type == "push" { // https://docs.pushbullet.com/#realtime-event-stream
+					log.Println(prettyPrint(data))
+					response(data.Push)
+				} else if data.Type != "nop" {
+					log.Println(prettyPrint(data))
+					log.Printf("default: %+v\n", data)
+				}
+
 			}
 		}
-	default:
-		// log.Printf("1_I don't know about type %T!\n", v)
+		log.Println("Reconnect")
+		time.Sleep(10 * time.Second)
 	}
-	return dataMap
 }
 
-func response(data map[string]string) {
-	log.Println("Response #", prettyPrint(data))
-	// log.Println("Response #", data["type"], data["package_name"])
-
+func response(data JSONPushEntry) {
 	id, _ := uuid.NewV4()
 	fileName := id.String()
 
-	if data["type"] == "mirror" { // Benachrichtigung ist erschienen
-		saveIcon(data["icon"], fileName)
+	if data.Type == "mirror" { // Benachrichtigung ist erschienen
+
+		err := saveIcon(data.Icon, fileName)
+		if err != nil {
+			log.Println(err)
+		}
 		iconPath, err := filepath.Abs(fileName + ".jpg")
 		if err != nil {
 			log.Println(err)
@@ -177,17 +150,32 @@ func response(data map[string]string) {
 
 		notification := Notification{
 			AppID:   "Pushbullet",
-			Title:   data["title"],
-			Message: data["body"],
+			Title:   data.Title,
+			Message: data.Body,
 			Icon:    iconPath,
-			Tag:     data["package_name"] + data["notification_id"] + data["source_device_iden"] + data["source_user_iden"],
+			Tag:     data.PackageName + data.NotificationID + data.SourceDeviceIden + data.SourceUserIden,
 			Actions: []Action{},
 		}
 
-		// pushbulletapi Protokoll
-		notification.Actions = append(notification.Actions, Action{"protocol", "Close", fmt.Sprintf(`pushbulletapi://dismissal/%s/%s/%s/%s`, data["notification_id"], "null", data["package_name"], data["source_user_iden"])})
-		// http Protokoll
-		// notification.Actions = append(notification.Actions, Action{"protocol", "Close", fmt.Sprintf(`http://localhost:%d/dismissal/%s/%s/%s/%s`, 45214, data["notification_id"], "null", data["package_name"], data["source_user_iden"])})
+		protocolDismissal := "pushbulletapi://dismissal"
+		u, err := url.Parse(protocolDismissal)
+		if err != nil {
+			log.Println(err)
+		}
+
+		q, err := url.ParseQuery(u.RawQuery)
+		if err != nil {
+			log.Println(err)
+		}
+
+		q.Add("NotificationID", data.NotificationID)
+		q.Add("NotificationTag", data.NotificationTag)
+		q.Add("ConversationIden", data.ConversationIden)
+		q.Add("SourceUserIden", data.SourceUserIden)
+		q.Add("PackageName", data.PackageName)
+
+		u.RawQuery = q.Encode()
+		notification.Actions = append(notification.Actions, Action{"protocol", "Close", strings.ReplaceAll(u.String(), "&", "&amp;")})
 
 		pushToast(fileNamePath+".ps1", notification)
 
@@ -197,37 +185,48 @@ func response(data map[string]string) {
 			os.Remove(fileNamePath + ".jpg")
 		}(fileNamePath)
 
-	} else if data["type"] == "dismissal" { // Benachrichtigung wurde entfernt
+	} else if data.Type == "dismissal" { // Benachrichtigung wurde entfernt
+
 		fileNamePath := filepath.Join(".", fileName)
-		removeToast(fileNamePath+"_remove.ps1", map[string]string{"tag": data["package_name"] + data["notification_id"] + data["source_device_iden"] + data["source_user_iden"]})
+		removeToast(fileNamePath+"_remove.ps1", map[string]string{"tag": data.PackageName + data.NotificationID + data.SourceDeviceIden + data.SourceUserIden})
 		go func(fileNamePath string) {
 			time.Sleep(100 * time.Millisecond)
 			os.Remove(fileNamePath + "_remove.ps1")
 		}(fileNamePath)
+
 	} else {
+
 		log.Println("Default Case:", prettyPrint(data))
+
 	}
 }
 
-func saveIcon(data, fileName string) {
+func saveIcon(data, fileName string) error {
 	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(data))
 	m, _, err := image.Decode(reader)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	//Encode from image format to writer
+	// Encode from image format to writer
 	pngFilename := fileName + ".jpg"
 	f, err := os.OpenFile(pngFilename, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
-		log.Fatal(err)
-		return
+		return err
 	}
 
 	err = jpeg.Encode(f, m, &jpeg.Options{Quality: 75})
 	if err != nil {
-		log.Fatal(err)
-		return
+		return err
 	}
 	f.Close()
+	return nil
+}
+
+func prettyPrint(data interface{}) string {
+	out, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	return string(out)
 }

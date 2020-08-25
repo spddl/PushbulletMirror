@@ -1,4 +1,5 @@
 apiKey.go
 *.ps1
-Pushbullet.exe
+*.log
+PushbulletMirror.exe
 main.code-workspace

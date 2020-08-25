@@ -89,6 +89,7 @@ type Action struct {
 	Type      string
 	Label     string
 	Arguments string
+	// Arguments *url.URL
 }
 
 // DismissJSON DismissNotification
@@ -98,10 +99,10 @@ type DismissJSON struct {
 }
 
 // SendJSON DismissNotification
-type SendJSON struct {
-	Push SendMessageJSON `json:"push"`
-	Type string          `json:"type"`
-}
+// type SendJSON struct {
+// 	Push SendMessageJSON `json:"push"`
+// 	Type string          `json:"type"`
+// }
 
 // PushDismissJSON DismissNotification
 type PushDismissJSON struct {
@@ -114,11 +115,39 @@ type PushDismissJSON struct {
 }
 
 // SendMessageJSON XX
-type SendMessageJSON struct {
-	Type             string `json:"type"`
-	TargetDeviceIden string `json:"target_device_iden"`
+// type SendMessageJSON struct {
+// 	Type             string `json:"type"`
+// 	TargetDeviceIden string `json:"target_device_iden"`
+// 	PackageName      string `json:"package_name"`
+// 	SourceUserIden   string `json:"source_user_iden"`
+// 	ConversationIden string `json:"conversation_iden"`
+// 	Message          string `json:"message"`
+// }
+
+// JSONEntry xx
+type JSONEntry struct {
+	Title   string        `json:"title,omitempty"`
+	Type    string        `json:"type"`
+	Push    JSONPushEntry `json:"push"`
+	Targets []string      `json:"targets"`
+}
+
+type JSONPushEntry struct {
+	Actions []struct {
+		Label      string `json:"label"`
+		TriggerKey string `json:"trigger_key"`
+	} `json:"actions,omitempty"`
+	ApplicationName  string `json:"application_name,omitempty"`
+	Body             string `json:"body,omitempty"`
+	ClientVersion    int    `json:"client_version,omitempty"`
+	ConversationIden string `json:"conversation_iden,omitempty"`
+	Dismissible      bool   `json:"dismissible,omitempty"`
+	Icon             string `json:"icon,omitempty"`
+	NotificationID   string `json:"notification_id"`
+	NotificationTag  string `json:"notification_tag,omitempty"`
 	PackageName      string `json:"package_name"`
+	SourceDeviceIden string `json:"source_device_iden,omitempty"`
 	SourceUserIden   string `json:"source_user_iden"`
-	ConversationIden string `json:"conversation_iden"`
-	Message          string `json:"message"`
+	Title            string `json:"title,omitempty"`
+	Type             string `json:"type"`
 }

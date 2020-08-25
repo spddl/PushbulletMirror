@@ -7,25 +7,31 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 )
 
 // DismissNotification https://docs.pushbullet.com/#dismissal-ephemeral
-func DismissNotification(data map[string]string) error {
+// func DismissNotification(data map[string]string) error {
+func DismissNotification(data url.Values) error {
 	log.Println("DismissNotification #", prettyPrint(data))
 
+	pushData := PushDismissJSON{
+		Type:             "dismissal",
+		PackageName:      data.Get("PackageName"),
+		NotificationID:   data.Get("NotificationID"),
+		NotificationTag:  data.Get("NotificationTag"),
+		SourceUserIden:   data.Get("SourceUserIden"),
+		ConversationIden: data.Get("ConversationIden"),
+	}
+
+	if pushData.NotificationTag == "" {
+		pushData.NotificationTag = nil
+	}
 	requestBody, err := json.Marshal(DismissJSON{
 		Type: "push",
-		Push: PushDismissJSON{
-			Type:             "dismissal",
-			PackageName:      data["PackageName"],
-			NotificationID:   data["NotificationID"],
-			NotificationTag:  nil, // data["NotificationTag"],
-			SourceUserIden:   data["SourceUserIden"],
-			ConversationIden: data["ConversationIden"],
-		},
+		Push: pushData,
 	})
-
 	if err != nil {
 		log.Println(err)
 	}
@@ -56,8 +62,6 @@ func DismissNotification(data map[string]string) error {
 
 	stringBody := string(body)
 	log.Println("result:", stringBody)
-
-	// time.Sleep(time.Hour)
 
 	if stringBody != "{}" {
 		return errors.New(stringBody)
