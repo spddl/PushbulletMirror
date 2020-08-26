@@ -84,7 +84,7 @@ func saveToast(fileName, content string) error {
 	if err != nil {
 		return err
 	}
-	cmd := exec.Command("PowerShell", "-ExecutionPolicy", "Bypass", "-File", fileName)
+	cmd := exec.Command("PowerShell", "–NoLogo", "–NoProfile", "-ExecutionPolicy", "Bypass", "-File", fileName)
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	if err = cmd.Run(); err != nil {
 		return err
