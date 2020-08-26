@@ -29,9 +29,8 @@ func pushbulletProtocolCheck(filename string) error {
 		return nil // korrekter Pfad
 	}
 
-	log.Println("in der Registry gefunden:", s)
-
-	log.Println("cmd /c start \"PushbulletAPI\" /Min \"" + filename + " \"%1\"")
+	// log.Println("in der Registry gefunden:", s)
+	// log.Println("cmd /c start \"PushbulletAPI\" /Min \"" + filename + " \"%1\"")
 	return errors.New("Pfad in der Registry ist falsch hinterlegt")
 }
 
@@ -71,6 +70,11 @@ func pushbulletProtocolCreateReg(filename string) { // https://www.robvanderwoud
 	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 	if err != nil {
-		log.Fatalf("REG IMPORT PushbulletApi.reg\nfailed with %s\n", err)
+		log.Printf("REG IMPORT PushbulletApi.reg\nfailed with %s\n", err)
+	} else {
+		err = os.Remove("./PushbulletApi.reg")
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
