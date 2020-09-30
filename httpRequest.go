@@ -13,10 +13,10 @@ import (
 
 // DismissNotification https://docs.pushbullet.com/#dismissal-ephemeral
 // func DismissNotification(data map[string]string) error {
-func DismissNotification(data url.Values) error {
+func dismissNotification(data url.Values) error {
 	log.Println("DismissNotification #", prettyPrint(data))
 
-	pushData := PushDismissJSON{
+	pushData := pushDismissJSON{
 		Type:             "dismissal",
 		PackageName:      data.Get("PackageName"),
 		NotificationID:   data.Get("NotificationID"),
@@ -28,7 +28,7 @@ func DismissNotification(data url.Values) error {
 	if pushData.NotificationTag == "" {
 		pushData.NotificationTag = nil
 	}
-	requestBody, err := json.Marshal(DismissJSON{
+	requestBody, err := json.Marshal(dismissJSON{
 		Type: "push",
 		Push: pushData,
 	})

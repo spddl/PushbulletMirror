@@ -15,7 +15,7 @@ import (
 // https://docs.microsoft.com/de-de/windows/uwp/design/shell/tiles-and-notifications/send-local-toast
 // https://docs.microsoft.com/en-us/uwp/api/windows.ui.notifications.toastnotification.tag?view=winrt-19041
 // https://docs.microsoft.com/en-us/windows/uwp/design/shell/tiles-and-notifications/toast-pending-update
-func pushToast(fileName string, data Notification) {
+func pushToast(fileName string, data notification) {
 	log.Println("Erstelle Push Toast:", fileName)
 	// $app = '{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\WindowsPowerShell\v1.0\powershell.exe'
 

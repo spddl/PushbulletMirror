@@ -45,7 +45,7 @@ func main() {
 		if u.Scheme == "pushbulletapi" {
 			switch u.Host {
 			case "dismissal":
-				err := DismissNotification(u.Query())
+				err := dismissNotification(u.Query())
 				if err != nil {
 					log.Println(err)
 				}
@@ -110,7 +110,7 @@ func main() {
 				// }
 				// log.Println("dataDEMO", prettyPrint(dataDEMO))
 
-				var data JSONEntry
+				var data jsonEntry
 				err := json.NewDecoder(reader).Decode(&data)
 				if err != nil {
 					log.Println(err)
@@ -131,7 +131,7 @@ func main() {
 	}
 }
 
-func response(data JSONPushEntry) {
+func response(data jsonPushEntry) {
 	id, _ := uuid.NewV4()
 	fileName := id.String()
 
@@ -148,13 +148,13 @@ func response(data JSONPushEntry) {
 
 		fileNamePath := filepath.Join(".", fileName)
 
-		notification := Notification{
+		notification := notification{
 			AppID:   "Pushbullet",
 			Title:   data.Title,
 			Message: data.Body,
 			Icon:    iconPath,
 			Tag:     data.PackageName + data.NotificationID + data.SourceDeviceIden + data.SourceUserIden,
-			Actions: []Action{},
+			Actions: []action{},
 		}
 
 		protocolDismissal := "pushbulletapi://dismissal"
@@ -175,7 +175,7 @@ func response(data JSONPushEntry) {
 		q.Add("PackageName", data.PackageName)
 
 		u.RawQuery = q.Encode()
-		notification.Actions = append(notification.Actions, Action{"protocol", "Close", strings.ReplaceAll(u.String(), "&", "&amp;")})
+		notification.Actions = append(notification.Actions, action{"protocol", "Close", strings.ReplaceAll(u.String(), "&", "&amp;")})
 
 		pushToast(fileNamePath+".ps1", notification)
 

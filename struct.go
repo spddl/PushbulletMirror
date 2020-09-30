@@ -38,7 +38,7 @@ package main
 //     }
 //
 //     err := toast.Push()
-type Notification struct {
+type notification struct {
 	// The name of your app. This value shows up in Windows 10's Action Centre, so make it
 	// something readable for your users. It can contain spaces, however special characters
 	// (eg. é) are not supported.
@@ -60,7 +60,7 @@ type Notification struct {
 	ActivationArguments string
 
 	// Optional action buttons to display below the notification title & message.
-	Actions []Action
+	Actions []action
 
 	// The audio to play when displaying the toast
 	Audio string
@@ -85,7 +85,7 @@ type Notification struct {
 // maps app with a pre-populated search field set to "sushi".
 //
 //     toast.Action{"protocol", "Open Maps", "bingmaps:?q=sushi"}
-type Action struct {
+type action struct {
 	Type      string
 	Label     string
 	Arguments string
@@ -93,8 +93,8 @@ type Action struct {
 }
 
 // DismissJSON DismissNotification
-type DismissJSON struct {
-	Push PushDismissJSON `json:"push"`
+type dismissJSON struct {
+	Push pushDismissJSON `json:"push"`
 	Type string          `json:"type"`
 }
 
@@ -105,7 +105,7 @@ type DismissJSON struct {
 // }
 
 // PushDismissJSON DismissNotification
-type PushDismissJSON struct {
+type pushDismissJSON struct {
 	NotificationID   string      `json:"notification_id"`
 	NotificationTag  interface{} `json:"notification_tag"`
 	PackageName      string      `json:"package_name"`
@@ -125,14 +125,14 @@ type PushDismissJSON struct {
 // }
 
 // JSONEntry xx
-type JSONEntry struct {
+type jsonEntry struct {
 	Title   string        `json:"title,omitempty"`
 	Type    string        `json:"type"`
-	Push    JSONPushEntry `json:"push"`
+	Push    jsonPushEntry `json:"push"`
 	Targets []string      `json:"targets"`
 }
 
-type JSONPushEntry struct {
+type jsonPushEntry struct {
 	Actions []struct {
 		Label      string `json:"label"`
 		TriggerKey string `json:"trigger_key"`
